@@ -1,0 +1,5 @@
+# Замени dashboard.example.com на свой домен (поддомен), направленный на IP сервера.
+# Caddy сам получит и продлит HTTPS-сертификат (нужно для Telegram Mini App).
+dashboard.example.com {
+    reverse_proxy 127.0.0.1:8080
+}

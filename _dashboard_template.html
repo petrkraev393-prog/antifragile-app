@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Модельный портфель — Antifragile</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{--bg:#0b1220;--card:#141d2e;--card2:#1b2740;--line:#26324d;--txt:#e8edf6;--muted:#8a98b5;
+    --accent:#f59e0b;--green:#34d399;--red:#f87171;--blue:#60a5fa}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;padding:24px;line-height:1.45}
+  .wrap{max-width:1180px;margin:0 auto}
+  .demo{background:rgba(245,158,11,.12);border:1px solid var(--accent);color:#fcd34d;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:18px}
+  header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+  h1{font-size:24px;font-weight:700} h1 span{color:var(--accent)}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .tabs{display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--line)}
+  .tabs button{background:none;border:none;color:var(--muted);font-size:14px;padding:11px 16px;cursor:pointer;
+    border-bottom:2px solid transparent;transition:all .2s}
+  .tabs button:hover{color:var(--txt)}
+  .tabs button.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .grid{display:grid;gap:16px}
+  .kpis{grid-template-columns:repeat(4,1fr)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;transition:transform .18s,border-color .18s}
+  .card:hover{transform:translateY(-3px);border-color:#3a4a6b}
+  .kpis .card:hover{border-color:var(--accent)}
+  .card .lbl{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  .card .val{font-size:25px;font-weight:700;margin-top:6px}
+  .card .val.sm{font-size:20px}
+  .pos{color:var(--green)} .neg{color:var(--red)}
+  .tag{display:inline-block;font-size:10px;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:1px 5px;margin-left:6px;vertical-align:middle}
+  .two{grid-template-columns:1fr 1fr;margin-top:16px}
+  .three{grid-template-columns:1.4fr 1fr;margin-top:16px}
+  .card h3{font-size:14px;font-weight:600;margin-bottom:14px}
+  .card h3 .cnt{color:var(--muted);font-weight:400}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:right;padding:7px 8px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;position:sticky;top:0;background:var(--card)}
+  tbody tr{transition:background .15s} tbody tr:hover{background:var(--card2)}
+  .bar{height:6px;background:var(--card2);border-radius:4px;overflow:hidden;min-width:60px}
+  .bar>span{display:block;height:100%;background:var(--accent);width:0;transition:width .9s ease}
+  .legend{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:14px;font-size:13px}
+  .legend div{display:flex;align-items:center;gap:7px;color:var(--muted);transition:color .15s}
+  .legend div:hover{color:var(--txt)}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .donutBox{position:relative;height:300px}
+  canvas{max-height:300px}
+  .muted{color:var(--muted)}
+  .page{display:none;animation:fade .35s ease}
+  .page.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .filters button{background:var(--card2);border:1px solid var(--line);color:var(--muted);border-radius:20px;padding:5px 13px;font-size:12px;cursor:pointer;transition:all .15s}
+  .filters button:hover{color:var(--txt)}
+  .filters button.active{background:var(--accent);color:#1a1206;border-color:var(--accent);font-weight:600}
+  .badge{font-size:11px;padding:2px 8px;border-radius:20px}
+  .badge.open{background:rgba(52,211,153,.15);color:var(--green)}
+  .badge.closed{background:rgba(138,152,181,.15);color:var(--muted)}
+  .tblwrap{max-height:460px;overflow:auto}
+  .scards{grid-template-columns:repeat(3,1fr);margin-bottom:16px}
+  @media(max-width:860px){.kpis,.scards{grid-template-columns:repeat(2,1fr)}.two,.three{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="demo" id="banner"></div>
+
+  <header>
+    <div>
+      <h1>Модельный портфель <span>Antifragile</span></h1>
+      <div class="sub">Публичный портфель · данные на 28.05.2026</div>
+    </div>
+    <div style="text-align:right">
+      <div class="sub">Стоимость портфеля</div>
+      <div style="font-size:30px;font-weight:800" id="hdrTotal"></div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="active" data-tab="overview">Обзор</button>
+    <button data-tab="trades">История сделок</button>
+    <button data-tab="divs">Дивиденды и купоны</button>
+    <button data-tab="contrib">Пополнения</button>
+  </div>
+
+  <!-- ОБЗОР -->
+  <section class="page active" id="overview">
+    <div class="grid kpis" id="kpis"></div>
+    <div class="grid three">
+      <div class="card">
+        <h3>Доходность портфеля vs Индекс МосБиржи полной доходности (с 2024), %</h3>
+        <canvas id="lineChart"></canvas>
+      </div>
+      <div class="card">
+        <h3>Распределение по классам активов</h3>
+        <div class="donutBox"><canvas id="donut"></canvas></div>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+    <div class="grid two">
+      <div class="card"><h3>Акции</h3><table id="stocksTbl"><thead><tr><th>Эмитент</th><th>Стоимость</th><th>Доля</th><th>Вес</th></tr></thead><tbody></tbody></table></div>
+      <div class="card"><h3>Облигации</h3><table id="bondsTbl"><thead><tr><th>Выпуск</th><th>Стоимость</th><th>Доля</th><th>Вес</th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="grid two">
+      <div class="card"><h3>Прочие активы</h3><table id="otherTbl"><thead><tr><th>Актив</th><th>Стоимость</th><th>Доля</th><th>Вес</th></tr></thead><tbody></tbody></table></div>
+      <div class="card"><h3>Доходность по периодам <span class="tag">метод Модиф. Дитца</span></h3>
+        <table id="periodsTbl"><thead><tr><th>Период</th><th>Портфель</th><th>Индекс п.д.</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ИСТОРИЯ СДЕЛОК -->
+  <section class="page" id="trades">
+    <div class="filters" id="tradeFilters"></div>
+    <div class="card"><h3>Открытые позиции <span class="cnt" id="openCnt"></span></h3><div class="tblwrap">
+      <table id="openTbl"><thead><tr><th>Класс</th><th>Актив</th><th>Вход</th><th>Цена покупки</th><th>Объём</th><th>Результат</th></tr></thead><tbody></tbody></table>
+    </div></div>
+    <div class="card" style="margin-top:16px"><h3>Закрытые сделки <span class="cnt" id="closedCnt"></span></h3><div class="tblwrap">
+      <table id="closedTbl"><thead><tr><th>Класс</th><th>Актив</th><th>Вход</th><th>Выход</th><th>Цена покупки</th><th>Объём</th><th>Результат</th></tr></thead><tbody></tbody></table>
+    </div></div>
+  </section>
+
+  <!-- ДИВИДЕНДЫ И КУПОНЫ -->
+  <section class="page" id="divs">
+    <div class="grid scards" id="divCards"></div>
+    <div class="grid two">
+      <div class="card"><h3>Дивиденды по акциям</h3><div class="tblwrap">
+        <table id="divTbl"><thead><tr><th>Дата</th><th>Эмитент</th><th>Год</th><th>Сумма</th></tr></thead><tbody></tbody></table></div></div>
+      <div class="card"><h3>Купоны по облигациям</h3><div class="tblwrap">
+        <table id="cpnTbl"><thead><tr><th>Дата</th><th>Выпуск</th><th>Год</th><th>Сумма</th></tr></thead><tbody></tbody></table></div></div>
+    </div>
+  </section>
+
+  <!-- ПОПОЛНЕНИЯ -->
+  <section class="page" id="contrib">
+    <div class="grid scards" id="contribCards"></div>
+    <div class="card"><h3>Пополнения и выводы средств</h3><div class="tblwrap">
+      <table id="contribTbl"><thead><tr><th>Дата</th><th>Операция</th><th>Сумма</th></tr></thead><tbody></tbody></table>
+    </div></div>
+  </section>
+
+  <p class="muted" style="font-size:12px;margin-top:18px">Прототип интерфейса. © Antifragile</p>
+</div>
+
+<script>
+/*DATA*/
+const money = n => Math.round(n).toLocaleString('ru-RU') + ' ₽';
+const pct = n => (n>=0?'+':'') + (n*100).toLocaleString('ru-RU',{maximumFractionDigits:1}) + '%';
+const cls = n => n>=0?'pos':'neg';
+const pdate = s => { if(!s) return new Date(0); const p=s.split('.'); let y=p[2]||'1970'; if(y.length===2) y='20'+y; return new Date(+y,(+p[1])-1,+p[0]); };
+
+// banner + header + KPI
+const pp = n => (n>=0?'+':'')+(n*100).toLocaleString('ru-RU',{maximumFractionDigits:1})+' п.п.';
+document.getElementById('banner').textContent = DATA.banner || '';
+document.getElementById('hdrTotal').textContent = money(DATA.total);
+const k = DATA.kpi;
+document.getElementById('kpis').innerHTML = `
+  <div class="card"><div class="lbl">Результат с начала года (2026)</div><div class="val ${cls(k.ytd2026)}">${pct(k.ytd2026)}</div></div>
+  <div class="card"><div class="lbl">Результат за 2025</div><div class="val ${cls(k.y2025)}">${pct(k.y2025)}</div></div>
+  <div class="card"><div class="lbl">Прибыль с 2024</div><div class="val pos">+${money(k.profit2024)}</div></div>
+  <div class="card"><div class="lbl">vs Индекс Мосбиржи (с 2024)</div><div class="val sm ${cls(k.vsindex)}">${pp(k.vsindex)}</div></div>`;
+
+// holdings
+function fillHoldings(id, rows){
+  const max = Math.max(...rows.map(r=>r[1]));
+  document.querySelector('#'+id+' tbody').innerHTML = rows.map(([n,v])=>
+    `<tr><td>${n}</td><td>${money(v)}</td><td>${(v/DATA.total*100).toFixed(1)}%</td>
+     <td><div class="bar"><span data-w="${(v/max*100).toFixed(0)}"></span></div></td></tr>`).join('');
+}
+fillHoldings('stocksTbl', DATA.stocks);
+fillHoldings('bondsTbl', DATA.bonds);
+fillHoldings('otherTbl', DATA.other);
+document.getElementById('periodsTbl').querySelector('tbody').innerHTML = DATA.periods.map(([p,a,b])=>
+  `<tr><td>${p}</td><td class="${cls(a)}">${pct(a)}</td><td class="${cls(b)}">${pct(b)}</td></tr>`).join('');
+
+document.getElementById('legend').innerHTML = DATA.classes.map(c=>
+  `<div><span class="dot" style="background:${c[2]}"></span>${c[0]} · ${(c[1]/DATA.total*100).toFixed(1)}%</div>`).join('');
+
+function animateBars(scope){ scope.querySelectorAll('.bar>span').forEach(s=>{ if(s.dataset.w) s.style.width=s.dataset.w+'%'; }); }
+requestAnimationFrame(()=>animateBars(document));
+
+// donut (с отступами, чтобы сегмент не обрезался при наведении)
+new Chart(document.getElementById('donut'),{
+  type:'doughnut',
+  data:{labels:DATA.classes.map(c=>c[0]),datasets:[{data:DATA.classes.map(c=>c[1]),
+    backgroundColor:DATA.classes.map(c=>c[2]),borderColor:'#141d2e',borderWidth:2,hoverOffset:14,hoverBorderColor:'#fff'}]},
+  options:{cutout:'62%',maintainAspectRatio:false,layout:{padding:22},animation:{animateScale:true,duration:900},
+    plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>` ${c.label}: ${money(c.raw)} (${(c.raw/DATA.total*100).toFixed(1)}%)`}}}}
+});
+
+// line: доходность с 2024, % (обе линии) — индекс полной доходности дневной, портфель интерполирован между точками
+const L = DATA.line;
+const sp = v => (v>=0?'+':'')+(+v).toFixed(1)+'%';
+new Chart(document.getElementById('lineChart'),{
+  type:'line',
+  data:{labels:L.labels,datasets:[
+    {label:'Портфель',data:L.portfolio,borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,.12)',fill:true,tension:.25,pointRadius:0,pointHoverRadius:5,borderWidth:2,spanGaps:true},
+    {label:'Индекс полной доходности',data:L.index,borderColor:'#60a5fa',fill:false,tension:.25,pointRadius:0,pointHoverRadius:5,borderWidth:2}]},
+  options:{interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{color:'#8a98b5'}},
+      tooltip:{backgroundColor:'#0b1220',borderColor:'#26324d',borderWidth:1,padding:10,
+        callbacks:{label:c=>c.raw==null?null:` ${c.dataset.label}: ${sp(c.raw)}`}}},
+    scales:{x:{ticks:{color:'#8a98b5',maxTicksLimit:8},grid:{color:'#1b2740'}},
+            y:{ticks:{color:'#8a98b5',callback:v=>v+'%'},grid:{color:'#1b2740'}}}}
+});
+
+// trades: две подтаблицы, новые сверху
+function rowTrade(t, withExit){
+  const res = t.res==null?'—':`<span class="${cls(t.res)}">${pct(t.res)}</span>`;
+  const price = t.price==null?'—':t.price.toLocaleString('ru-RU');
+  const vol = t.vol==null?'—':t.vol;
+  return `<tr><td>${t.cls}</td><td>${t.asset}</td><td>${t.din}</td>${withExit?`<td>${t.dout||'—'}</td>`:''}<td>${price}</td><td>${vol}</td><td>${res}</td></tr>`;
+}
+function renderTrades(filter){
+  const f = t => filter==='Все'||t.cls===filter;
+  const open = DATA.trades.filter(t=>t.status==='Открыта'&&f(t)).sort((a,b)=>pdate(b.din)-pdate(a.din));
+  const closed = DATA.trades.filter(t=>t.status==='Закрыта'&&f(t)).sort((a,b)=>pdate(b.dout||b.din)-pdate(a.dout||a.din));
+  document.querySelector('#openTbl tbody').innerHTML = open.map(t=>rowTrade(t,false)).join('');
+  document.querySelector('#closedTbl tbody').innerHTML = closed.map(t=>rowTrade(t,true)).join('');
+  document.getElementById('openCnt').textContent = '· '+open.length;
+  document.getElementById('closedCnt').textContent = '· '+closed.length;
+}
+const classesList = ['Все', ...new Set(DATA.trades.map(t=>t.cls))];
+document.getElementById('tradeFilters').innerHTML = classesList.map((c,i)=>
+  `<button class="${i===0?'active':''}" data-f="${c}">${c}</button>`).join('');
+document.getElementById('tradeFilters').addEventListener('click',e=>{
+  if(e.target.tagName!=='BUTTON')return;
+  document.querySelectorAll('#tradeFilters button').forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active'); renderTrades(e.target.dataset.f);
+});
+renderTrades('Все');
+
+// dividends & coupons: новые сверху
+const sumD = DATA.divs.reduce((a,d)=>a+d.sum,0), sumC = DATA.coupons.reduce((a,c)=>a+c.sum,0);
+document.getElementById('divCards').innerHTML = `
+  <div class="card"><div class="lbl">Дивиденды (всего)</div><div class="val pos">+${money(sumD)}</div></div>
+  <div class="card"><div class="lbl">Купоны (всего)</div><div class="val pos">+${money(sumC)}</div></div>
+  <div class="card"><div class="lbl">Итого выплат</div><div class="val pos">+${money(sumD+sumC)}</div></div>`;
+const divsSorted = [...DATA.divs].sort((a,b)=>pdate(b.date)-pdate(a.date));
+const cpnSorted  = [...DATA.coupons].sort((a,b)=>pdate(b.date)-pdate(a.date));
+document.querySelector('#divTbl tbody').innerHTML = divsSorted.map(d=>
+  `<tr><td>${d.date}</td><td>${d.asset}</td><td>${d.year}</td><td class="pos">+${money(d.sum)}</td></tr>`).join('');
+document.querySelector('#cpnTbl tbody').innerHTML = cpnSorted.map(c=>
+  `<tr><td>${c.date}</td><td>${c.asset}</td><td>${c.year}</td><td class="pos">+${money(c.sum)}</td></tr>`).join('');
+
+// пополнения
+const contrib = (DATA.contrib||[]).slice().sort((a,b)=>pdate(b.date)-pdate(a.date));
+const totIn = contrib.filter(c=>c.sum>0).reduce((a,c)=>a+c.sum,0);
+const totOut = contrib.filter(c=>c.sum<0).reduce((a,c)=>a+c.sum,0);
+document.getElementById('contribCards').innerHTML = `
+  <div class="card"><div class="lbl">Всего внесено</div><div class="val pos">+${money(totIn)}</div></div>
+  <div class="card"><div class="lbl">Всего выведено</div><div class="val ${totOut<0?'neg':'muted'}">${money(totOut)}</div></div>
+  <div class="card"><div class="lbl">Чистый ввод капитала</div><div class="val">${money(totIn+totOut)}</div></div>`;
+document.querySelector('#contribTbl tbody').innerHTML = contrib.map(c=>
+  `<tr><td>${c.date}</td><td>${c.type}</td><td class="${c.sum>=0?'pos':'neg'}">${c.sum>=0?'+':''}${money(c.sum)}</td></tr>`).join('');
+
+// tabs
+document.querySelector('.tabs').addEventListener('click',e=>{
+  if(e.target.tagName!=='BUTTON')return;
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  e.target.classList.add('active');
+  const pg=document.getElementById(e.target.dataset.tab); pg.classList.add('active'); animateBars(pg);
+});
+</script>
+</body>
+</html>
